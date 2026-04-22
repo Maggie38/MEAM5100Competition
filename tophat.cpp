@@ -17,6 +17,9 @@ void tophatSendPackets() {
   // write packet count for this window
   Wire.write(packetCount);
   Wire.endTransmission();
+<<<<<<< HEAD
   // reset packetCount
+=======
+>>>>>>> f1c27422209361ee66d8eeec46be53fdf21187ce
   packetCount = 0;
 }

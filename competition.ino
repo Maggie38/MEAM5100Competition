@@ -42,7 +42,7 @@ void loop() {
 
   // single byte I2C read
   tophatReadHealth();
-  
+
   // Send packet count to TopHat at 2 Hz
   unsigned long now = millis();
   if (now - lastPacketSendMS >= PACKET_SEND_MS) {
