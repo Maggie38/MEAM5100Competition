@@ -8,6 +8,7 @@
 #include "tophat.h"
 #include "tof.h"
 #include "servo_ctrl.h"
+#include "vive.h"
 #include "web_handlers.h"
 
 // I2C bus pins
@@ -27,6 +28,7 @@ void setup() {
   servoInit();      // servo LEDC + rest position
   tofInit();        // VL53L0X sensors
   webInit();        // WiFi + HTTP routes
+  viveInit();       // setup vive
 
   motorsStop();
 
@@ -55,4 +57,11 @@ void loop() {
 
   // Update TOF readings
   tofUpdate();
+
+  // Update vive localizations
+  viveUpdate();
+
+  // Serial.print("Robot X: "); Serial.print(robotX);
+  // Serial.print(" Y: "); Serial.print(robotY);
+  // Serial.print(" Theta: "); Serial.println(robotTheta);
 }
