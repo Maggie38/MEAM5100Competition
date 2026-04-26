@@ -50,9 +50,9 @@ void loop() {
     tophatSendPackets();
   }
 
-  // Run one step of P-controller
+  // Run one step of P-controller or wall follow depending on current state
   driverUpdate(health);
 
   // Update TOF readings
-  // tofUpdate();
+  tofUpdate();
 }

@@ -9,7 +9,7 @@ extern byte packetCount;
 
 /**
  * Read the current health byte from the TopHat over I2C.
- * Update the global`health` variable.
+ * Update the global health variable.
  */
 void tophatReadHealth();
 

@@ -31,7 +31,8 @@ static byte readSensor(Adafruit_VL53L0X& sensor) {
   sensor.rangingTest(&measure, false);
   if (measure.RangeStatus != 4) {
     uint16_t mm = measure.RangeMilliMeter;
-    return (byte)min((uint16_t)255, mm);
+    uint16_t cm = mm / 10;
+    return (byte)min((uint16_t)255, cm);
   }
   return 0;
 }

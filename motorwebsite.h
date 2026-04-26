@@ -36,6 +36,23 @@ const char body[] PROGMEM = R"===(
       cursor: pointer;
     }
     #strikeBtn:active { background: #b71c1c; }
+    .wf-row {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+    }
+    .wfBtn {
+      width: 160px;
+      height: 60px;
+      font-size: 16px;
+      background: #1565C0;
+      border-radius: 12px;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    .wfBtn:active { background: #0d47a1; }
   </style>
 </head>
 <body>
@@ -52,7 +69,11 @@ const char body[] PROGMEM = R"===(
     <div class="empty"></div>
   </div>
   <br>
-  <button id="strikeBtn" onclick="sendCmd('strike')"> Strike</button>
+  <button id="strikeBtn" onclick="sendCmd('strike')">Strike</button>
+  <div class="wf-row">
+    <button class="wfBtn" onclick="sendCmd('wallfollowRight')">Wall Right</button>
+    <button class="wfBtn" onclick="sendCmd('wallfollowLeft')">Wall Left</button>
+  </div>
   <p id="status">Ready</p>
 </body>
 <script>

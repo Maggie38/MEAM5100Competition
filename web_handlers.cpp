@@ -78,6 +78,26 @@ static void strikeHandler() {
   }
 }
 
+static void wallFollowRightHandler() {
+  if (health > 0) {
+    packetCount++;
+    driveState = DS_WALL_FOLLOW_RIGHT;
+    h.sendplain("wall_follow_right");
+  } else {
+    h.sendplain("dead");
+  }
+}
+
+static void wallFollowLeftHandler() {
+  if (health > 0) {
+    packetCount++;
+    driveState = DS_WALL_FOLLOW_LEFT;
+    h.sendplain("wall_follow_left");
+  } else {
+    h.sendplain("dead");
+  }
+}
+
 static void stopHandler() {
   packetCount++;
   driveState = DS_STOP;
@@ -105,8 +125,10 @@ void webInit() {
   h.attachHandler("/backward", backwardHandler);
   h.attachHandler("/left",     leftHandler);
   h.attachHandler("/right",    rightHandler);
-  h.attachHandler("/stop",     stopHandler);
-  h.attachHandler("/strike",   strikeHandler);
+  h.attachHandler("/stop",            stopHandler);
+  h.attachHandler("/strike",          strikeHandler);
+  h.attachHandler("/wallfollowRight", wallFollowRightHandler);
+  h.attachHandler("/wallfollowLeft",  wallFollowLeftHandler);
 }
 
 void webServe() {
