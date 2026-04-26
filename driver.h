@@ -4,6 +4,7 @@
 // P-controller tuning
 constexpr long  TARGET_SPEED = 100;   // counts / 100 ms
 constexpr float KP           = 0.8f;
+constexpr float KP_DIFF      = 0.5f;
 constexpr int   CONTROL_MS   = 100; 
 
 constexpr int PWM_MIN = 60;

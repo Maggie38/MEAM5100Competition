@@ -42,22 +42,36 @@ void resetWallFollow() {
 
 // one step of p controller
 void PController(int motorDir) {
-  for (int m = 0; m < 2; m++) {
-    noInterrupts();
-    long currentCount = encoderCount[m];
-    interrupts();
+  // Read both encoder counts atomically
+  noInterrupts();
+  long countL = encoderCount[0];
+  long countR = encoderCount[1];
+  interrupts();
 
-    // calculate current speed from encoder counts
-    long measuredSpeed = abs(currentCount - prevCount[m]);
-    prevCount[m] = currentCount;
+  // Calculate individual speeds
+  long speedL = abs(countL - prevCount[0]);
+  long speedR = abs(countR - prevCount[1]);
+  prevCount[0] = countL;
+  prevCount[1] = countR;
 
-    // adjust pwm output accordingly
-    long error      = TARGET_SPEED - measuredSpeed;
-    int  correction = (int)(KP * (float)error);
-    pwmOutput[m]    = constrain(pwmOutput[m] + correction, PWM_MIN, PWM_MAX);
+  // Keep both motors near TARGET_SPEED using average as the base reading
+  long avgSpeed = (speedL + speedR) / 2;
 
-    motor(m, motorDir, pwmOutput[m]);
-  }
+  // Base correction: push average toward TARGET_SPEED
+  long baseError      = TARGET_SPEED - avgSpeed;
+  int  baseCorrection = (int)(KP * (float)baseError);
+
+  // Differential correction: error > 0 means left is faster than right
+  long diffError = speedL - speedR;
+  int  diffCorr  = (int)(KP_DIFF * (float)diffError);
+
+  // Left motor gets less PWM if it's faster, right gets more
+  // If left is slower, left gets more PWM, right gets less
+  pwmOutput[0] = constrain(pwmOutput[0] + baseCorrection - diffCorr, PWM_MIN, PWM_MAX);
+  pwmOutput[1] = constrain(pwmOutput[1] + baseCorrection + diffCorr, PWM_MIN, PWM_MAX);
+
+  motor(0, motorDir, pwmOutput[0]);
+  motor(1, motorDir, pwmOutput[1]);
 }
 
 // update driver if health > 0
