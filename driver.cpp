@@ -9,7 +9,7 @@ static long prevCount[2]  = {0, 0};
 static int  pwmOutput[2]  = {PWM_MIN, PWM_MIN};
 static long lastControlMS = 0;
 
-// Previous TOF readings for wall following
+// target distance
 static int targetTOF_right = -1;
 static int targetTOF_left  = -1;
 

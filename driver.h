@@ -15,7 +15,7 @@ enum DriveState { DS_STOP, DS_FORWARD, DS_BACKWARD, DS_LEFT, DS_RIGHT,
 extern volatile DriveState driveState;
 
 /**
- * Initialixe driver state.  Call once from setup() after motorInit().
+ * Initialize driver state.
  */
 void driverInit();
 

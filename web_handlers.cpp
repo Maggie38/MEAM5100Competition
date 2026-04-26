@@ -45,6 +45,7 @@ static void backwardHandler() {
 static void rightHandler() {
   if (health > 0) {
     packetCount++;
+    resetWallFollow();
     driveState = DS_RIGHT;
     // turn right
     motor(0, 0, 0);
@@ -58,6 +59,7 @@ static void rightHandler() {
 static void leftHandler() {
   if (health > 0) {
     packetCount++;
+    resetWallFollow();
     driveState = DS_LEFT;
     // turn left
     motor(0, 1, 110);
