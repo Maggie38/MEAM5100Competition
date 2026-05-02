@@ -6,9 +6,6 @@
 #define VIVE_READ_INTERVAL_MS 20
 #define VIVE_SYNC_INTERVAL_MS 5000
 
-#define VIVE1_PIN 17
-#define VIVE2_PIN 16
-
 static Vive510 vive1(VIVE1_PIN);
 static Vive510 vive2(VIVE2_PIN);
 

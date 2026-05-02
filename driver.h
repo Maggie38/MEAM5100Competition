@@ -11,9 +11,19 @@ constexpr int PWM_MIN = 60;
 constexpr int PWM_MAX = 255;
 
 // Drive states
-enum DriveState { DS_STOP, DS_FORWARD, DS_BACKWARD, DS_LEFT, DS_RIGHT,
-                  DS_WALL_FOLLOW_RIGHT, DS_WALL_FOLLOW_LEFT };
+enum DriveState { 
+  DS_STOP, DS_FORWARD, DS_BACKWARD, DS_LEFT, DS_RIGHT,
+  DS_WALL_FOLLOW_RIGHT, DS_WALL_FOLLOW_LEFT, DS_AUTO_CIRCUIT,
+  DS_AUTO_TARGET
+};
 extern volatile DriveState driveState;
+
+// full circuit wall follow constants
+constexpr int AC_FRONT_WALL_CM = 20;
+constexpr int AC_TURN90_TICKS = 200;
+constexpr int AC_WEAVE_TICKS = 200;
+constexpr int AC_TICKS_30CM = 100;
+constexpr int AC_TICKS_20CM = 80;
 
 /**
  * Initialize driver state.
@@ -60,3 +70,28 @@ void wallFollowRight();
  * One step of left-wall following (uses TOF2, mounted on left side).
  */
 void wallFollowLeft();
+
+/*
+ * Starts full circuit wall follow
+*/
+void startCircuitFollow();
+
+/**
+ * Call before entering full circuit wall-follow state.
+ */
+void resetAutoCircuit();
+
+/**
+ * One step of circuit wall follow
+ */
+void autoCircuitUpdate();
+
+/*
+* Start autonomous vive cover logic
+*/
+void startAutoTarget(float tx, float ty);
+
+/*
+* One step of vive cover logic
+*/
+void autoTargetUpdate();

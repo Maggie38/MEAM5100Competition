@@ -2,8 +2,8 @@
 #include <Arduino.h>
 
 // XSHUT pins
-constexpr int XSHUT_1 = 5;
-constexpr int XSHUT_2 = 18;
+constexpr int XSHUT_1 = 18;
+constexpr int XSHUT_2 = 5;
 constexpr int XSHUT_3 = 19;
 
 // Latest distance readings in mm

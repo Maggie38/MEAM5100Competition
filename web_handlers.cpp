@@ -5,6 +5,8 @@
 #include "servo_ctrl.h"
 #include "html510.h"
 #include "motorwebsite.h"
+#include "tof.h"
+#include "vive.h"
 
 // WiFi credentials
 static const char* SSID     = "TP-Link_8A8C";
@@ -16,6 +18,16 @@ static HTML510Server h(80);
 // Route handlers 
 static void handleRoot() {
   h.sendhtml(body);
+}
+
+// telemetry handler
+static void stateHandler() {
+    char json[150];
+    sprintf(json, 
+        "{\"health\":%d,\"x\":%.1f,\"y\":%.1f,\"theta\":%.1f,\"tof1\":%d,\"tof2\":%d,\"tof3\":%d}",
+        health, robotX, robotY, robotTheta, TOF1, TOF2, TOF3
+    );
+    h.sendplain(json);
 }
 
 static void forwardHandler() {
@@ -100,6 +112,17 @@ static void wallFollowLeftHandler() {
   }
 }
 
+static void autoCircuitHandler() {
+  if (health > 0) {
+    packetCount++;
+    resetAutoCircuit();
+    driveState = DS_AUTO_CIRCUIT;
+    h.sendplain("auto_circuit");
+  } else {
+    h.sendplain("dead");
+  }
+}
+
 static void stopHandler() {
   packetCount++;
   driveState = DS_STOP;
@@ -107,17 +130,41 @@ static void stopHandler() {
   h.sendplain("stop");
 }
 
-void webInit() {
-  // connect to wifi
-  WiFi.mode(WIFI_MODE_STA);
-  WiFi.begin(SSID, PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+static void gotoHandler() {
+  if (health <= 0) {
+    h.sendplain("dead");
+    return;
   }
-  Serial.println("\nConnected!");
-  Serial.print("Go to: http://");
-  Serial.println(WiFi.localIP());
+  packetCount++;
+
+  int tx = h.getVal();   // reads x
+  int ty = h.getVal();   // reads y
+
+  startAutoTarget((float)tx, (float)ty);
+  h.sendplain("goto");
+}
+
+void webInit() {
+  // // connect to wifi
+  // WiFi.mode(WIFI_MODE_STA);
+  // WiFi.begin(SSID, PASSWORD);
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(500);
+  //   Serial.print(".");
+  // }
+  // Serial.println("\nConnected!");
+  // Serial.print("Go to: http://");
+  // Serial.println(WiFi.localIP());
+
+  // h.begin();
+
+  // AP mode
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("Team 11 ESP", "12345678");
+
+  Serial.println("\nAP started!");
+  Serial.print("Connect to 'Team 11 ESP' then go to: http://");
+  Serial.println(WiFi.softAPIP()); 
 
   h.begin();
 
@@ -131,6 +178,9 @@ void webInit() {
   h.attachHandler("/strike",          strikeHandler);
   h.attachHandler("/wallfollowRight", wallFollowRightHandler);
   h.attachHandler("/wallfollowLeft",  wallFollowLeftHandler);
+  h.attachHandler("/autoCircuit", autoCircuitHandler);
+  h.attachHandler("/state", stateHandler);
+  h.attachHandler("/goto?x=", gotoHandler);
 }
 
 void webServe() {

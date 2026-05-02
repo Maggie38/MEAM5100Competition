@@ -21,7 +21,7 @@ static unsigned long lastPacketSendMS = 0;
 void setup() {
   Serial.begin(115200);
 
-  Wire.begin(SDA_PIN, SCL_PIN, 40000);
+  Wire.begin(SDA_PIN, SCL_PIN, 100000);
 
   motorInit();      // GPIO, LEDC channels, encoder ISRs
   driverInit();     // P-controller state
@@ -57,9 +57,12 @@ void loop() {
 
   // Update TOF readings
   tofUpdate();
-
   // Update vive localizations
   viveUpdate();
+
+  Serial.print("TOF1: "); Serial.print(TOF1); Serial.print("cm | ");
+  Serial.print("TOF2: "); Serial.print(TOF2); Serial.print("cm | ");
+  Serial.print("TOF3: "); Serial.print(TOF3); Serial.println("cm | ");
 
   // Serial.print("Robot X: "); Serial.print(robotX);
   // Serial.print(" Y: "); Serial.print(robotY);
