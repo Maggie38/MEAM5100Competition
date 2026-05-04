@@ -1,0 +1,15 @@
+#pragma once
+#include <Arduino.h>
+
+constexpr int VIVE1_PIN = 16;
+constexpr int VIVE2_PIN = 4;
+
+extern volatile uint16_t vive1X, vive1Y;
+extern volatile uint16_t vive2X, vive2Y;
+
+extern volatile float robotX;
+extern volatile float robotY;
+extern volatile float robotTheta;
+
+void viveInit();
+void viveUpdate();
