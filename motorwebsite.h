@@ -103,7 +103,9 @@ const char body[] PROGMEM = R"===(
   <strong>Status:</strong> <span id="status">Ready</span><br>
   <strong>Health:</strong> <span id="disp_health">0</span>%<br>
   <strong>Position:</strong> X:<span id="disp_x">0</span>, Y:<span id="disp_y">0</span>, &theta;:<span id="disp_t">0</span>&deg;<br>
-  <strong>TOF (cm):</strong> L:<span id="disp_tof2">0</span>, C:<span id="disp_tof3">0</span>, R:<span id="disp_tof1">0</span>
+  <strong>TOF (cm):</strong> L:<span id="disp_tof2">0</span>, C:<span id="disp_tof3">0</span>, R:<span id="disp_tof1">0</span><br>
+  <strong>PWM:</strong> L:<span id="disp_pwmL">0</span>, R:<span id="disp_pwmR">0</span><br>
+  <strong>Encoder:</strong> L:<span id="disp_encL">0</span>, R:<span id="disp_encR">0</span>
 </div>
 
 <script>
@@ -132,8 +134,11 @@ const char body[] PROGMEM = R"===(
       document.getElementById("disp_tof1").innerText   = data.tof1;
       document.getElementById("disp_tof2").innerText   = data.tof2;
       document.getElementById("disp_tof3").innerText   = data.tof3;
-      
-      // Update status if robot dies
+      document.getElementById("disp_pwmL").innerText   = data.pwmL;
+      document.getElementById("disp_pwmR").innerText   = data.pwmR;
+      document.getElementById("disp_encL").innerText   = data.encL;
+      document.getElementById("disp_encR").innerText   = data.encR;
+
       if(data.health <= 0) document.getElementById("status").innerText = "DEAD";
     });
   }

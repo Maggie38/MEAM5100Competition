@@ -54,17 +54,10 @@ void loop() {
 
   // Run one step of P-controller or wall follow depending on current state
   driverUpdate(health);
-
   // Update TOF readings
   tofUpdate();
   // Update vive localizations
   viveUpdate();
 
-  Serial.print("TOF1: "); Serial.print(TOF1); Serial.print("cm | ");
-  Serial.print("TOF2: "); Serial.print(TOF2); Serial.print("cm | ");
-  Serial.print("TOF3: "); Serial.print(TOF3); Serial.println("cm | ");
-
-  // Serial.print("Robot X: "); Serial.print(robotX);
-  // Serial.print(" Y: "); Serial.print(robotY);
-  // Serial.print(" Theta: "); Serial.println(robotTheta);
+  
 }

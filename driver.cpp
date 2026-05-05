@@ -8,8 +8,8 @@
 volatile DriveState driveState = DS_STOP;
 
 static long prevCount[2]  = {0, 0};
-static int  pwmOutput[2]  = {PWM_MIN, PWM_MIN};
 static long lastControlMS = 0;
+int pwmOutput[2]  = {PWM_MIN, PWM_MIN};
 
 // target wall follow distance
 static int targetTOF_right = -1;
@@ -93,9 +93,6 @@ void driverUpdate(byte health) {
   else if (driveState == DS_WALL_FOLLOW_RIGHT) wallFollowRight();
   else if (driveState == DS_WALL_FOLLOW_LEFT)  wallFollowLeft();
   else if (driveState == DS_AUTO_CIRCUIT)      autoCircuitUpdate();
-
-  Serial.printf("encL=%ld encR=%ld pwmL=%d pwmR=%d\n",
-  encoderCount[0], encoderCount[1], pwmOutput[0], pwmOutput[1]);
 }
 
 /*
@@ -121,12 +118,14 @@ void wallFollowRight() {
   int error    = current - targetTOF_right;
   int delta    = constrain((int)(KP_WF * error), -WF_DELTA_MAX, WF_DELTA_MAX);
 
-  int leftPWM  = constrain(WF_BASE_PWM + delta, PWM_MIN, PWM_MAX);
-  int rightPWM = constrain(WF_BASE_PWM - delta, PWM_MIN, PWM_MAX);
+  if (delta > 0)
+    pwmOutput[0] = constrain(WF_BASE_PWM + delta, PWM_MIN, PWM_MAX);
+  else
+    pwmOutput[1] = constrain(WF_BASE_PWM - delta, PWM_MIN, PWM_MAX);
 
   // update motor calls
-  motor(0, +1, leftPWM);
-  motor(1, +1, rightPWM);
+  motor(0, +1, pwmOutput[0]);
+  motor(1, +1, pwmOutput[1]);
 }
 
 void wallFollowLeft() {
@@ -141,12 +140,14 @@ void wallFollowLeft() {
   int error    = current - targetTOF_left;
   int delta    = constrain((int)(KP_WF * error), -WF_DELTA_MAX, WF_DELTA_MAX);
 
-  int rightPWM = constrain(WF_BASE_PWM + delta, PWM_MIN, PWM_MAX);
-  int leftPWM  = constrain(WF_BASE_PWM - delta, PWM_MIN, PWM_MAX);
+  if (delta > 0)
+    pwmOutput[1] = constrain(WF_BASE_PWM + delta, PWM_MIN, PWM_MAX);
+  else
+    pwmOutput[0] = constrain(WF_BASE_PWM - delta, PWM_MIN, PWM_MAX);
 
   // update motor calls
-  motor(0, +1, leftPWM);
-  motor(1, +1, rightPWM);
+  motor(0, +1, pwmOutput[0]);
+  motor(1, +1, pwmOutput[1]);
 }
 
 static long acTurnStartPos = 0;

@@ -23,9 +23,15 @@ static void handleRoot() {
 // telemetry handler
 static void stateHandler() {
     char json[150];
-    sprintf(json, 
-        "{\"health\":%d,\"x\":%.1f,\"y\":%.1f,\"theta\":%.1f,\"tof1\":%d,\"tof2\":%d,\"tof3\":%d}",
-        health, robotX, robotY, robotTheta, TOF1, TOF2, TOF3
+    sprintf(json,
+        "{\"health\":%d,\"x\":%.1f,\"y\":%.1f,\"theta\":%.1f,"
+        "\"tof1\":%d,\"tof2\":%d,\"tof3\":%d,"
+        "\"pwmL\":%d,\"pwmR\":%d,"
+        "\"encL\":%ld,\"encR\":%ld}",
+        health, robotX, robotY, robotTheta,
+        TOF1, TOF2, TOF3,
+        pwmOutput[0], pwmOutput[1],
+        encoderCount[0], encoderCount[1]
     );
     h.sendplain(json);
 }
@@ -60,8 +66,8 @@ static void rightHandler() {
     resetWallFollow();
     driveState = DS_RIGHT;
     // turn right
-    motor(0, 0, 0);
-    motor(1, 1, 110);
+    motor(1, 0, 0);
+    motor(0, 1, 110);
     h.sendplain("right");
   } else {
     h.sendplain("dead");
@@ -74,8 +80,8 @@ static void leftHandler() {
     resetWallFollow();
     driveState = DS_LEFT;
     // turn left
-    motor(0, 1, 110);
-    motor(1, 0, 0);
+    motor(1, 1, 110);
+    motor(0, 0, 0);
     h.sendplain("left");
   } else {
     h.sendplain("dead");

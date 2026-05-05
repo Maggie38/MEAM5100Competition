@@ -2,13 +2,15 @@
 #include <Arduino.h>
 
 // P-controller tuning
-constexpr long  TARGET_SPEED = 100;   // counts / 100 ms
+constexpr long  TARGET_SPEED = 320;   // counts / 100 ms
 constexpr float KP           = 0.8f;
-constexpr float KP_DIFF      = 0.5f;
+constexpr float KP_DIFF      = 0.6f;
 constexpr int   CONTROL_MS   = 100; 
 
 constexpr int PWM_MIN = 60;
 constexpr int PWM_MAX = 255;
+
+extern int pwmOutput[2];
 
 // Drive states
 enum DriveState { 
@@ -51,9 +53,9 @@ void resetPController();
 void driverUpdate(byte health);
 
 // Wall-follow tuning
-constexpr int WF_BASE_PWM  = 120;  // baseline PWM for both motors
-constexpr int WF_DELTA_MAX = 80;   // max correction added/subtracted
-constexpr float KP_WF      = 1.5f; // proportional gain for wall follow
+constexpr int WF_BASE_PWM  = 100;  // baseline PWM for both motors
+constexpr int WF_DELTA_MAX = 40;   // max correction added/subtracted
+constexpr float KP_WF      = 0.4f; // proportional gain for wall follow
 
 /**
  * Call before entering wall-follow state.

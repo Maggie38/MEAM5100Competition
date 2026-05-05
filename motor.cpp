@@ -23,11 +23,11 @@ void IRAM_ATTR encB0_ISR() {
 }
 void IRAM_ATTR encA1_ISR() {
   int a = digitalRead(ENCA[1]), b = digitalRead(ENCB[1]);
-  if (a != b) encoderCount[1]++; else encoderCount[1]--;
+  if (a != b) encoderCount[1]--; else encoderCount[1]++;
 }
 void IRAM_ATTR encB1_ISR() {
   int a = digitalRead(ENCA[1]), b = digitalRead(ENCB[1]);
-  if (a == b) encoderCount[1]++; else encoderCount[1]--;
+  if (a == b) encoderCount[1]--; else encoderCount[1]++;
 }
 
 void motorInit() {
@@ -51,9 +51,9 @@ void motorInit() {
 // set motor m to have given direction and speed
 void motor(int m, int dir, int spd) {
   if (dir > 0) {
-    digitalWrite(IN1[m], HIGH); digitalWrite(IN2[m], LOW);
+    digitalWrite(IN1[m], LOW); digitalWrite(IN2[m], HIGH);
   } else if (dir < 0) {
-    digitalWrite(IN1[m], LOW);  digitalWrite(IN2[m], HIGH);
+    digitalWrite(IN1[m], HIGH);  digitalWrite(IN2[m], LOW);
   } else {
     digitalWrite(IN1[m], LOW);  digitalWrite(IN2[m], LOW);
   }
