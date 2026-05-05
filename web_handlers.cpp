@@ -153,18 +153,6 @@ static void gotoHandler() {
 }
 
 void webInit() {
-  // // connect to wifi
-  // WiFi.mode(WIFI_MODE_STA);
-  // WiFi.begin(SSID, PASSWORD);
-  // while (WiFi.status() != WL_CONNECTED) {
-  //   delay(500);
-  //   Serial.print(".");
-  // }
-  // Serial.println("\nConnected!");
-  // Serial.print("Go to: http://");
-  // Serial.println(WiFi.localIP());
-
-  // h.begin();
 
   // AP mode
   WiFi.mode(WIFI_AP);
