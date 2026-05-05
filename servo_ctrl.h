@@ -7,8 +7,8 @@ constexpr int    SERVO_FREQ  = 50;    // Hz
 constexpr int    SERVO_RES   = 16;    // bits
 
 // Pulse widths in microseconds
-constexpr uint32_t SERVO_REST   = 500;
-constexpr uint32_t SERVO_STRIKE = 2000;
+constexpr uint32_t SERVO_REST   = 1500;
+constexpr uint32_t SERVO_STRIKE = 2500;
 
 /** Attach LEDC channel and move servo to rest position. Call once in setup(). */
 void servoInit();

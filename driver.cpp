@@ -9,11 +9,14 @@ volatile DriveState driveState = DS_STOP;
 
 static long prevCount[2]  = {0, 0};
 static long lastControlMS = 0;
-int pwmOutput[2]  = {PWM_MIN, PWM_MIN};
+volatile int pwmOutput[2]  = {PWM_MIN, PWM_MIN};
 
 // target wall follow distance
 static int targetTOF_right = -1;
 static int targetTOF_left  = -1;
+
+static int wfPrevErrorRight = 0;
+static int wfPrevErrorLeft  = 0;
 
 // target vive locations
 static float targetX = 0;
@@ -44,6 +47,8 @@ void resetPController() {
 void resetWallFollow() {
   targetTOF_right = -1;
   targetTOF_left  = -1;
+  wfPrevErrorRight = 0;
+  wfPrevErrorLeft  = 0;
 }
 
 // one step of p controller
@@ -118,6 +123,9 @@ void wallFollowRight() {
   int error    = current - targetTOF_right;
   int delta    = constrain((int)(KP_WF * error), -WF_DELTA_MAX, WF_DELTA_MAX);
 
+  pwmOutput[0] = WF_BASE_PWM;
+  pwmOutput[1] = WF_BASE_PWM;
+
   if (delta > 0)
     pwmOutput[0] = constrain(WF_BASE_PWM + delta, PWM_MIN, PWM_MAX);
   else
@@ -139,6 +147,9 @@ void wallFollowLeft() {
   // error < 0: too close to wall - boost left motor
   int error    = current - targetTOF_left;
   int delta    = constrain((int)(KP_WF * error), -WF_DELTA_MAX, WF_DELTA_MAX);
+
+  pwmOutput[0] = WF_BASE_PWM;
+  pwmOutput[1] = WF_BASE_PWM;
 
   if (delta > 0)
     pwmOutput[1] = constrain(WF_BASE_PWM + delta, PWM_MIN, PWM_MAX);

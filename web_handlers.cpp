@@ -101,6 +101,7 @@ static void strikeHandler() {
 static void wallFollowRightHandler() {
   if (health > 0) {
     packetCount++;
+    resetWallFollow();
     driveState = DS_WALL_FOLLOW_RIGHT;
     h.sendplain("wall_follow_right");
   } else {
@@ -111,6 +112,7 @@ static void wallFollowRightHandler() {
 static void wallFollowLeftHandler() {
   if (health > 0) {
     packetCount++;
+    resetWallFollow();
     driveState = DS_WALL_FOLLOW_LEFT;
     h.sendplain("wall_follow_left");
   } else {
