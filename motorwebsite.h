@@ -36,6 +36,18 @@ const char body[] PROGMEM = R"===(
       cursor: pointer;
     }
     #strikeBtn:active { background: #b71c1c; }
+    #attackBtn {
+      margin-top: 10px;
+      width: 180px;
+      height: 60px;
+      font-size: 20px;
+      background: #ff6f00;
+      border-radius: 12px;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    #attackBtn:active { background: #e65100; }
     .wf-row {
       margin-top: 14px;
       display: flex;
@@ -95,6 +107,8 @@ const char body[] PROGMEM = R"===(
   </div>
   <br>
   <button id="strikeBtn" onclick="sendCmd('strike')">Strike</button>
+  <br>
+  <button id="attackBtn" onclick="sendCmd('attack')">Attack Mode</button>
   <div class="wf-row">
     <button class="wfBtn" onclick="sendCmd('wallfollowRight')">Wall Right</button>
     <button class="wfBtn" onclick="sendCmd('wallfollowLeft')">Wall Left</button>
@@ -123,7 +137,8 @@ const char body[] PROGMEM = R"===(
   <strong>Position:</strong> X:<span id="disp_x">0</span>, Y:<span id="disp_y">0</span>, &theta;:<span id="disp_t">0</span>&deg;<br>
   <strong>TOF (cm):</strong> L:<span id="disp_tof2">0</span>, C:<span id="disp_tof3">0</span>, R:<span id="disp_tof1">0</span><br>
   <strong>PWM:</strong> L:<span id="disp_pwmL">0</span>, R:<span id="disp_pwmR">0</span><br>
-  <strong>Encoder:</strong> L:<span id="disp_encL">0</span>, R:<span id="disp_encR">0</span>
+  <strong>Encoder:</strong> L:<span id="disp_encL">0</span>, R:<span id="disp_encR">0</span><br>
+  <strong>Attack Mode:</strong> <span id="disp_attack">OFF</span>
 </div>
 
 <script>
@@ -156,6 +171,7 @@ const char body[] PROGMEM = R"===(
       document.getElementById("disp_pwmR").innerText   = data.pwmR;
       document.getElementById("disp_encL").innerText   = data.encL;
       document.getElementById("disp_encR").innerText   = data.encR;
+      document.getElementById("disp_attack").innerText = data.attack ? "ON" : "OFF";
 
       if(data.health <= 0) document.getElementById("status").innerText = "DEAD";
     });

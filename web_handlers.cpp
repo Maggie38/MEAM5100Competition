@@ -162,6 +162,17 @@ static void autoHighHandler() {
   }
 }
 
+static void attackModeHandler() {
+  if (health > 0) {
+    packetCount++;
+    bool active = servoAttackToggle();
+    h.sendplain(active ? "attack_on" : "attack_off");
+  } else {
+    servoAttackStop();
+    h.sendplain("dead");
+  }
+}
+
 static void stopHandler() {
   packetCount++;
   driveState = DS_STOP;
@@ -212,6 +223,7 @@ void webInit() {
   h.attachHandler("/autohigh",    autoHighHandler);
   h.attachHandler("/state", stateHandler);
   h.attachHandler("/goto?x=", gotoHandler);
+  h.attachHandler("/attack",      attackModeHandler);
 }
 
 void webServe() {
