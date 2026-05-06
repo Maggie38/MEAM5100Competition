@@ -49,7 +49,7 @@ void driverUpdate(byte health);
 // Wall-follow tuning
 constexpr int WF_BASE_PWM  = 70;  // baseline PWM for both motors
 constexpr int WF_DELTA_MAX = 30;   // max correction added/subtracted
-constexpr float KP_WF      = 0.8f; // proportional gain for wall follow
+constexpr float KP_WF      = 0.5f; // proportional gain for wall follow
 
 constexpr float KD_WF = 1.0f;
 

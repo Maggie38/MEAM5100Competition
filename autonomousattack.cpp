@@ -189,17 +189,20 @@ void autoNexusUpdate() {
 enum AutoHighStep {
   AH_RAMP_UP = 0,    // wall-follow right up the ramp at speed 1500 until right encoder >= 1600
   AH_TURN_RIGHT,     // pivot right (left motor fwd 70) until left encoder >= 300
+  AH_FORWARD,        //drive straight to ensure button press
   AH_DONE
 };
 
 static AutoHighStep ahStep      = AH_DONE;
 static long         ahRampStart = 0;
 static long         ahTurnStart = 0;
+static long         ahForwardStart = 0;
 
 void startAutoHigh() {
   ahStep      = AH_RAMP_UP;
   ahRampStart = 0;
   ahTurnStart = 0;
+  ahForwardStart = 0;
   resetPController();
   resetWallFollow();
   driveState = DS_AUTO_HIGH;
@@ -243,7 +246,21 @@ void autoHighUpdate() {
         driveState = DS_STOP;
       }
       break;
-
+    case AH_FORWARD:
+      if (ahForwardStart == 0) {
+        noInterrupts();
+        ahForwardStart = encoderCount[0];
+        interrupts();
+        currentL = ahForwardStart;
+      }
+      motor(0, +1, 100);  // left motor forward
+      motor(1,  0,  100);  // right motor forward
+      if (abs(currentL - ahForwardStart) >= 500) {
+        motorsStop();
+        ahStep = AH_DONE;
+        driveState = DS_STOP;
+      }
+      break;
     case AH_DONE:
     default:
       motorsStop();

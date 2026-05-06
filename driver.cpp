@@ -19,6 +19,11 @@ static int targetTOF_left  = -1;
 static int wfPrevErrorRight = 0;
 static int wfPrevErrorLeft  = 0;
 
+// Left wall-follow backup timing.
+// Change this value to tune how long the robot backs up when the front TOF sees an obstacle.
+static const unsigned long LEFT_WALL_FOLLOW_BACKUP_MS = 750;
+static unsigned long leftWallFollowBackupStartMS = 0;
+
 // target vive locations
 static float targetX = 0;
 static float targetY = 0;
@@ -50,6 +55,7 @@ void resetWallFollow() {
   targetTOF_left  = -1;
   wfPrevErrorRight = 0;
   wfPrevErrorLeft  = 0;
+  leftWallFollowBackupStartMS = 0;
 }
 
 // one step of p controller
@@ -148,12 +154,32 @@ void wallFollowRight() {
 }
  
 void wallFollowLeft() {
+  unsigned long now = millis();
+
   int front = (int)TOF3;
   if (front == 0) front = 255;
- 
-  if (front < 35) {
-    motor(0,  -1,  40);
-    motor(1, -1, 70);
+
+  // If the front sensor sees an obstacle, start a timed backup.
+  // This makes the backup last a fixed amount of time instead of depending
+  // on how long the front TOF stays below the threshold.
+  if (front < 20 && leftWallFollowBackupStartMS == 0) {
+    leftWallFollowBackupStartMS = now;
+  }
+
+  // While backup mode is active, keep backing up until the timer expires.
+  if (leftWallFollowBackupStartMS != 0) {
+    if (now - leftWallFollowBackupStartMS < LEFT_WALL_FOLLOW_BACKUP_MS) {
+      motor(0, -1, 40);
+      motor(1, -1, 70);
+      return;
+    }
+
+    // Backup finished. Reset the timer and re-latch the left wall target
+    // because the robot's distance from the wall may have changed.
+    leftWallFollowBackupStartMS = 0;
+    targetTOF_left = -1;
+    wfPrevErrorLeft = 0;
+    motorsStop();
     return;
   }
  
