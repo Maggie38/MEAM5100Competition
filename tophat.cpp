@@ -9,6 +9,7 @@ void tophatReadHealth() {
   if (Wire.available()) {
     // update health reading from I2C wire
     health = Wire.read();
+    Serial.println(health);
   }
 }
 
@@ -16,6 +17,7 @@ void tophatSendPackets() {
   Wire.beginTransmission(TOPHAT_ADDR);
   // write packet count for this window
   Wire.write(packetCount);
+  Serial.println(packetCount);
   Wire.endTransmission();
   // reset packetCount
   packetCount = 0;

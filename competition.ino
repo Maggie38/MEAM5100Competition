@@ -21,7 +21,7 @@ static unsigned long lastPacketSendMS = 0;
 void setup() {
   Serial.begin(460800);
 
-  Wire.begin(SDA_PIN, SCL_PIN, 100000);
+  Wire.begin(SDA_PIN, SCL_PIN, 40000);
 
   motorInit();      // GPIO, LEDC channels, encoder ISRs
   driverInit();     // P-controller state
@@ -31,7 +31,6 @@ void setup() {
   viveInit();       // setup vive
 
   motorsStop();
-
   lastPacketSendMS = millis();
 }
 
@@ -58,6 +57,4 @@ void loop() {
   tofUpdate();
   // Update vive localizations
   viveUpdate();
-
-  
 }

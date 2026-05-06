@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // P-controller tuning
-constexpr long  TARGET_SPEED = 300 * 5;
+constexpr long  TARGET_SPEED = 300 * 4;
 constexpr float KP           = 0.8f;
 constexpr float KP_DIFF      = 0.6f;
 constexpr int   CONTROL_MS   = 500; 
@@ -69,7 +69,16 @@ void wallFollowRight();
  */
 void wallFollowLeft();
 
+/**
+ * One step of wall following with a target speed
+ */
 void wallFollowRightSpeed(long targetSpeed);
+void wallFollowLeftSpeed(long targetSpeed);
+
+/**
+ * Returns true if we've hit a wall
+ */
+bool isStalled();
 
 /*
  * Starts full circuit wall follow

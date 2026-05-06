@@ -36,13 +36,6 @@ void startAutoLow() {
   driveState = DS_AUTO_LOW;
 }
 
-void resetAutoLow() {
-  alStep     = AL_DONE;
-  alTurnStart = 0;
-  resetWallFollow();
-  motorsStop();
-}
-
 void autoLowUpdate() {
   int rightDist = safeRight();
 
@@ -84,33 +77,113 @@ void autoLowUpdate() {
   }
 }
 
+constexpr int NEXUS_MAX_STRIKES = 4;
+
+static long stateStartTime = 0;
+static long stallCheckTimer = 0;
+static long lastKnownCountL = 0;
+static long stallStartTime = 0;
+
 enum AutoNexusStep {
-  AN_APPROACH = 0,   // drive toward nexus
-  AN_STRIKE,         // fire servo
-  AN_RETREAT,        // back away before next strike
+  AN_WF_TO_WALL = 0, // Wall follow left until stall/contact
+  AN_BACK_UP_TOF,    // Back up until front TOF is 10cm
+  AN_PIVOT_RIGHT,    // Pivot until encoder hits 2500
+  AN_APPROACH_HIT,   // Wall follow until hit button (stall)
+  AN_BACK_UP_STALL,  // Back up until stall
   AN_DONE
 };
 
-static AutoNexusStep anStep    = AN_DONE;
-static int           anStrikes = 0;       // counts strikes delivered (max 4)
+static AutoNexusStep anStep = AN_DONE;
+static int anStrikes = 0; 
+static long anEncoderStart = 0;
 
-constexpr int NEXUS_MAX_STRIKES = 4;
+void transitionTo(AutoNexusStep nextStep) {
+  anStep = nextStep;
+  stateStartTime = millis();
+  stallCheckTimer = 0;
+  stallStartTime = 0;
+  noInterrupts();
+  lastKnownCountL = encoderCount[0];
+  interrupts();
+}
 
 void startAutoNexus() {
-  anStep    = AN_APPROACH;
   anStrikes = 0;
   resetPController();
   driveState = DS_AUTO_NEXUS;
-}
-
-void resetAutoNexus() {
-  anStep    = AN_DONE;
-  anStrikes = 0;
-  motorsStop();
+  transitionTo(AN_WF_TO_WALL);
 }
 
 void autoNexusUpdate() {
+  int frontDist = safeFront();
   
+  noInterrupts();
+  long currentL = encoderCount[0];
+  interrupts();
+
+  switch (anStep) {
+    // 1. Wall follow left until stall
+    case AN_WF_TO_WALL:
+      wallFollowLeftSpeed(1500);
+      if (isStalled()) {
+        motorsStop();
+        transitionTo(AN_BACK_UP_TOF);
+      }
+      break;
+
+    // 2. Back up slowly until front TOF reads 10 cm
+    case AN_BACK_UP_TOF:
+      motor(0, -1, 80);
+      motor(1, -1, 80);
+      if (frontDist >= 100) { 
+        motorsStop();
+        anEncoderStart = currentL;
+        transitionTo(AN_PIVOT_RIGHT);
+      }
+      break;
+
+    // 3. Right wheel reverse, left wheel forward until encoder count 2500
+    case AN_PIVOT_RIGHT:
+      motor(0, +1, 100); 
+      motor(1, -1, 100); 
+      if (abs(currentL - anEncoderStart) >= 2500) {
+        motorsStop();
+        anStrikes = 0;
+        transitionTo(AN_APPROACH_HIT);
+      }
+      break;
+
+    // 4. Wall follow left until hit button (stall)
+    case AN_APPROACH_HIT:
+      wallFollowLeftSpeed(1200);
+      if (isStalled()) { 
+        motorsStop();
+        transitionTo(AN_BACK_UP_STALL);
+      }
+      break;
+
+    // 5. Back up until stall
+    case AN_BACK_UP_STALL:
+      motor(0, -1, 120);
+      motor(1, -1, 120);
+      
+      if (isStalled()) { 
+        motorsStop();
+        anStrikes++;
+        if (anStrikes < 4) {
+          transitionTo(AN_APPROACH_HIT);
+        } else {
+          transitionTo(AN_DONE);
+        }
+      }
+      break;
+
+    case AN_DONE:
+    default:
+      motorsStop();
+      driveState = DS_STOP;
+      break;
+  }
 }
 
 enum AutoHighStep {
@@ -132,12 +205,6 @@ void startAutoHigh() {
   driveState = DS_AUTO_HIGH;
 }
 
-void resetAutoHigh() {
-  ahStep = AH_DONE;
-  motorsStop();
-  resetWallFollow();
-}
-
 void autoHighUpdate() {
   noInterrupts();
   long currentL = encoderCount[0];
@@ -153,7 +220,7 @@ void autoHighUpdate() {
         currentR = ahRampStart;
       }
       wallFollowRightSpeed(1500);
-      if (abs(currentR - ahRampStart) >= 10000) {
+      if (abs(currentR - ahRampStart) >= 14500) {
         motorsStop();
         resetWallFollow();
         ahTurnStart = 0;
@@ -168,7 +235,7 @@ void autoHighUpdate() {
         interrupts();
         currentL = ahTurnStart;
       }
-      motor(0, +1, 70);  // left motor forward -> pivots right
+      motor(0, +1, 100);  // left motor forward -> pivots right
       motor(1,  0,  0);  // right motor stopped
       if (abs(currentL - ahTurnStart) >= 3000) {
         motorsStop();
