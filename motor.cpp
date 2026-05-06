@@ -1,13 +1,13 @@
 #include "motor.h"
 
 // Encoder pins
-const int ENCA[2]    = {39, 35};
-const int ENCB[2]    = {36, 34};
+const int ENCA[2]    = {35, 39};
+const int ENCB[2]    = {34, 36};
 // Direction pins
-const int IN1[2]     = {32, 25};
-const int IN2[2]     = {33, 26};
+const int IN1[2]     = {25, 32};
+const int IN2[2]     = {26, 33};
 // PWM pins
-const int PWM_PIN[2] = {27, 14};
+const int PWM_PIN[2] = {14, 27};
 
 // Encoder state
 volatile long encoderCount[2] = {0, 0};
@@ -51,12 +51,14 @@ void motorInit() {
 // set motor m to have given direction and speed
 void motor(int m, int dir, int spd) {
   if (dir > 0) {
-    digitalWrite(IN1[m], LOW); digitalWrite(IN2[m], HIGH);
+    digitalWrite(IN1[m], HIGH); digitalWrite(IN2[m], LOW);
   } else if (dir < 0) {
-    digitalWrite(IN1[m], HIGH);  digitalWrite(IN2[m], LOW);
+    digitalWrite(IN1[m], LOW);  digitalWrite(IN2[m], HIGH);
   } else {
     digitalWrite(IN1[m], LOW);  digitalWrite(IN2[m], LOW);
   }
+  if (m == 1)
+     spd = (int)((float)spd * 1.06);
   ledcWrite(PWM_PIN[m], (dir == 0) ? 0 : spd);
 }
 

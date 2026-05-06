@@ -19,7 +19,7 @@ constexpr unsigned long PACKET_SEND_MS = 500;
 static unsigned long lastPacketSendMS = 0;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(460800);
 
   Wire.begin(SDA_PIN, SCL_PIN, 100000);
 

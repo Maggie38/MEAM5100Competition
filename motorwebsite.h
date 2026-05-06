@@ -65,6 +65,19 @@ const char body[] PROGMEM = R"===(
       cursor: pointer;
     }
     #autoBtn:active { background: #4a148c; }
+    .autoAttackBtn {
+      width: 160px;
+      height: 60px;
+      font-size: 15px;
+      border-radius: 12px;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    .autoAttackBtn:active { filter: brightness(0.8); }
+    #autoLowBtn    { background: #F57F17; }
+    #autoNexusBtn  { background: #B71C1C; }
+    #autoHighBtn   { background: #1A237E; }
   </style>
 </head>
 <body>
@@ -88,6 +101,11 @@ const char body[] PROGMEM = R"===(
   </div>
   <div class="wf-row">
     <button id="autoBtn" onclick="sendCmd('autocircuit')">Auto Circuit</button>
+  </div>
+  <div class="wf-row">
+    <button id="autoLowBtn"   class="autoAttackBtn" onclick="sendCmd('autolow')">Auto Low</button>
+    <button id="autoNexusBtn" class="autoAttackBtn" onclick="sendCmd('autonexus')">Auto Nexus</button>
+    <button id="autoHighBtn"  class="autoAttackBtn" onclick="sendCmd('autohigh')">Auto High</button>
   </div>
     <div class="wf-row">
     <input id="targetX" type="number" placeholder="Target X" style="width:120px; height:40px; font-size:16px;">

@@ -1,6 +1,7 @@
 #include "web_handlers.h"
 #include "motor.h"
 #include "driver.h"
+#include "autonomousattack.h"
 #include "tophat.h"
 #include "servo_ctrl.h"
 #include "html510.h"
@@ -131,6 +132,36 @@ static void autoCircuitHandler() {
   }
 }
 
+static void autoLowHandler() {
+  if (health > 0) {
+    packetCount++;
+    startAutoLow();
+    h.sendplain("auto_low");
+  } else {
+    h.sendplain("dead");
+  }
+}
+
+static void autoNexusHandler() {
+  if (health > 0) {
+    packetCount++;
+    startAutoNexus();
+    h.sendplain("auto_nexus");
+  } else {
+    h.sendplain("dead");
+  }
+}
+
+static void autoHighHandler() {
+  if (health > 0) {
+    packetCount++;
+    startAutoHigh();
+    h.sendplain("auto_high");
+  } else {
+    h.sendplain("dead");
+  }
+}
+
 static void stopHandler() {
   packetCount++;
   driveState = DS_STOP;
@@ -145,8 +176,9 @@ static void gotoHandler() {
   }
   packetCount++;
 
-  int tx = h.getVal();   // reads x
-  int ty = h.getVal();   // reads y
+  int tx = h.getVal();   // reads x value
+  h.getText();           // consumes "y=" 
+  int ty = h.getVal();   // reads y value
 
   startAutoTarget((float)tx, (float)ty);
   h.sendplain("goto");
@@ -174,7 +206,10 @@ void webInit() {
   h.attachHandler("/strike",          strikeHandler);
   h.attachHandler("/wallfollowRight", wallFollowRightHandler);
   h.attachHandler("/wallfollowLeft",  wallFollowLeftHandler);
-  h.attachHandler("/autoCircuit", autoCircuitHandler);
+  h.attachHandler("/autocircuit", autoCircuitHandler);
+  h.attachHandler("/autolow",     autoLowHandler);
+  h.attachHandler("/autonexus",   autoNexusHandler);
+  h.attachHandler("/autohigh",    autoHighHandler);
   h.attachHandler("/state", stateHandler);
   h.attachHandler("/goto?x=", gotoHandler);
 }

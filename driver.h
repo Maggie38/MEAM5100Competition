@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // P-controller tuning
-constexpr long  TARGET_SPEED = 320 * 5;
+constexpr long  TARGET_SPEED = 300 * 5;
 constexpr float KP           = 0.8f;
 constexpr float KP_DIFF      = 0.6f;
 constexpr int   CONTROL_MS   = 500; 
@@ -16,16 +16,10 @@ extern volatile int pwmOutput[2];
 enum DriveState { 
   DS_STOP, DS_FORWARD, DS_BACKWARD, DS_LEFT, DS_RIGHT,
   DS_WALL_FOLLOW_RIGHT, DS_WALL_FOLLOW_LEFT, DS_AUTO_CIRCUIT,
-  DS_AUTO_TARGET
+  DS_AUTO_TARGET, DS_AUTO_LOW, DS_AUTO_NEXUS, DS_AUTO_HIGH
 };
 extern volatile DriveState driveState;
-
-// full circuit wall follow constants
-constexpr int AC_FRONT_WALL_CM = 20;
-constexpr int AC_TURN90_TICKS = 200;
-constexpr int AC_WEAVE_TICKS = 200;
-constexpr int AC_TICKS_30CM = 100;
-constexpr int AC_TICKS_20CM = 80;
+constexpr int AC_TURN90_TICKS = 140;
 
 /**
  * Initialize driver state.
@@ -53,13 +47,9 @@ void resetPController();
 void driverUpdate(byte health);
 
 // Wall-follow tuning
-constexpr int WF_BASE_PWM  = 100;  // baseline PWM for both motors
-constexpr int WF_DELTA_MAX = 40;   // max correction added/subtracted
+constexpr int WF_BASE_PWM  = 70;  // baseline PWM for both motors
+constexpr int WF_DELTA_MAX = 30;   // max correction added/subtracted
 constexpr float KP_WF      = 0.8f; // proportional gain for wall follow
-
-constexpr uint32_t WF_STRAIGHT_MS  = 300;  // ms driving straight before sampling
-constexpr uint32_t WF_CORRECT_MS   = 150;  // ms applying correction
-constexpr int      WF_DEAD_BAND    = 2; 
 
 constexpr float KD_WF = 1.0f;
 
@@ -78,6 +68,8 @@ void wallFollowRight();
  * One step of left-wall following (uses TOF2, mounted on left side).
  */
 void wallFollowLeft();
+
+void wallFollowRightSpeed(long targetSpeed);
 
 /*
  * Starts full circuit wall follow
