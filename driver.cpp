@@ -19,10 +19,13 @@ static int targetTOF_left  = -1;
 static int wfPrevErrorRight = 0;
 static int wfPrevErrorLeft  = 0;
 
-// Left wall-follow backup timing.
-// Change this value to tune how long the robot backs up when the front TOF sees an obstacle.
+// Left wall-follow backup timing
 static const unsigned long LEFT_WALL_FOLLOW_BACKUP_MS = 750;
 static unsigned long leftWallFollowBackupStartMS = 0;
+
+// Left wall-follow speed backup timing
+static const unsigned long LEFT_WALL_FOLLOW_SPEED_BACKUP_MS = 750;
+static unsigned long leftWallFollowSpeedBackupStartMS = 0;
 
 // target vive locations
 static float targetX = 0;
@@ -59,7 +62,7 @@ void resetWallFollow() {
 }
 
 // one step of p controller
-void PController(int motorDir) {
+void PController(int motorDir, int targetspeed) {
   // Read both encoder counts atomically
   noInterrupts();
   long countL = encoderCount[0];
@@ -72,11 +75,11 @@ void PController(int motorDir) {
   prevCount[0] = countL;
   prevCount[1] = countR;
 
-  // Keep both motors near TARGET_SPEED using average as the base reading
+  // Keep both motors near targetspeed using average as the base reading
   long avgSpeed = (speedL + speedR) / 2;
 
-  // Base correction: push average toward TARGET_SPEED
-  long baseError      = TARGET_SPEED - avgSpeed;
+  // Base correction: push average toward targetspeed
+  long baseError      = targetspeed - avgSpeed;
   int  baseCorrection = (int)(KP * (float)baseError);
 
   // Differential correction: error > 0 means left is faster than right
@@ -92,6 +95,10 @@ void PController(int motorDir) {
   motor(1, motorDir, pwmOutput[1]);
 }
 
+void PController(int motorDir) {
+  PController(motorDir, TARGET_SPEED);
+}
+
 // update driver if health > 0
 void driverUpdate(byte health) {
   long now = millis();
@@ -103,7 +110,7 @@ void driverUpdate(byte health) {
   if      (driveState == DS_FORWARD)          PController(+1);
   else if (driveState == DS_BACKWARD)         PController(-1);
   else if (driveState == DS_WALL_FOLLOW_RIGHT) wallFollowRight();
-  else if (driveState == DS_WALL_FOLLOW_LEFT)  wallFollowLeft();
+  else if (driveState == DS_WALL_FOLLOW_LEFT)  wallFollowLeftSpeed(350);
   else if (driveState == DS_AUTO_CIRCUIT)      autoCircuitUpdate();
   else if (driveState == DS_AUTO_TARGET)       autoTargetUpdate();
   else if (driveState == DS_AUTO_LOW)   autoLowUpdate();
@@ -159,9 +166,7 @@ void wallFollowLeft() {
   int front = (int)TOF3;
   if (front == 0) front = 255;
 
-  // If the front sensor sees an obstacle, start a timed backup.
-  // This makes the backup last a fixed amount of time instead of depending
-  // on how long the front TOF stays below the threshold.
+  // If the front sensor sees an obstacle, start a timed backup
   if (front < 15 && leftWallFollowBackupStartMS == 0) {
     leftWallFollowBackupStartMS = now;
   }
@@ -175,7 +180,6 @@ void wallFollowLeft() {
     }
 
     // Backup finished. Reset the timer and re-latch the left wall target
-    // because the robot's distance from the wall may have changed.
     leftWallFollowBackupStartMS = 0;
     targetTOF_left = -1;
     wfPrevErrorLeft = 0;
@@ -243,28 +247,56 @@ void wallFollowRightSpeed(long targetSpeed) {
 }
 
 void wallFollowLeftSpeed(long targetSpeed) {
+  unsigned long now = millis();
+ 
+  int front = (int)TOF3;
+  if (front == 0) front = 255;
+ 
+  // If the front sensor sees an obstacle, start a timed backup
+  if ((front < 15 || isStalled()) && leftWallFollowSpeedBackupStartMS == 0) {
+    leftWallFollowSpeedBackupStartMS = now;
+  }
+ 
+  // While backup mode is active, keep backing up until the timer expires.
+  if (leftWallFollowSpeedBackupStartMS != 0) {
+    if (now - leftWallFollowSpeedBackupStartMS < LEFT_WALL_FOLLOW_SPEED_BACKUP_MS) {
+      // Bias right motor faster so robot curves right, away from front wall,
+      // while staying set up to re-acquire the left wall
+      motor(0, -1, 60);
+      motor(1, -1, 90);
+      return;
+    }
+ 
+    // Backup finished. Reset timer and re-latch the left wall target
+    leftWallFollowSpeedBackupStartMS = 0;
+    targetTOF_left = -1;
+    wfPrevErrorLeft = 0;
+    motorsStop();
+    return;
+  }
+ 
   // Use TOF2 for the left side
   int current = (int)TOF2;
   if (current == 0) current = 255;
-
+ 
   // Initialize target if not already set
   if (targetTOF_left < 0) targetTOF_left = current;
-
+ 
   // 1. Speed regulation (P-Controller for base speed)
   noInterrupts();
   long countL = encoderCount[0];
   long countR = encoderCount[1];
   interrupts();
-
+ 
   long speedL = abs(countL - prevCount[0]);
   long speedR = abs(countR - prevCount[1]);
   prevCount[0] = countL;
   prevCount[1] = countR;
-
+ 
   long avgSpeed = (speedL + speedR) / 2;
   long baseError = targetSpeed - avgSpeed;
   int baseCorrection = (int)(KP * (float)baseError);
-
+ 
   // 2. Wall steering correction (PD Logic)
   int error = current - targetTOF_left;
   int dError = error - wfPrevErrorLeft;
@@ -272,18 +304,15 @@ void wallFollowLeftSpeed(long targetSpeed) {
   
   // Calculate steering delta
   int delta = constrain((int)(KP_WF * error + KD_WF * dError), -WF_DELTA_MAX, WF_DELTA_MAX);
-
+ 
   // 3. Apply base speed correction to both motors
   pwmOutput[0] = constrain(pwmOutput[0] + baseCorrection, PWM_MIN, PWM_MAX+10);
   pwmOutput[1] = constrain(pwmOutput[1] + baseCorrection, PWM_MIN, PWM_MAX+10);
-
+ 
   // 4. Apply steering correction
-  // For Left Wall Follow:
-  // If error is positive (too far), delta is positive.
-  // We want to turn left: Decrease Left Motor (0), Increase Right Motor (1)
   pwmOutput[0] = constrain(pwmOutput[0] - delta, PWM_MIN, PWM_MAX+10);
   pwmOutput[1] = constrain(pwmOutput[1] + delta, PWM_MIN, PWM_MAX+10);
-
+ 
   motor(0, +1, pwmOutput[0]);
   motor(1, +1, pwmOutput[1]);
 }
@@ -451,79 +480,100 @@ void autoCircuitUpdate() {
 }
 
 // autonomous vive cover logic
+// New sequence:
+//   1. AT_DRIVE_X  — drive straight slowly until robotX is within 100 of targetX
+//   2. AT_TURN_90  — pivot right (left fwd, right rev) by AC_TURN90_TICKS encoder counts
+//   3. AT_DRIVE_Y  — drive straight slowly until robotY is within 100 of targetY
 enum AutoTargetStep {
-  AT_TURN,
-  AT_DRIVE,
+  AT_DRIVE_X,
+  AT_TURN_90,
+  AT_DRIVE_Y,
   AT_DONE
 };
-
+ 
 static AutoTargetStep autoTargetStep = AT_DONE;
+ 
+constexpr float VIVE_TOL   = 100.0f;  // coordinate tolerance (Vive units)
+constexpr int   AT_TURN_PWM  = 90;    // pivot turn PWM
+ 
+static long atTurnStartL = 0;
+static long atTurnStartR = 0;
 
-constexpr float ANGLE_TOL_DEG = 8.0;     // acceptable heading error
-constexpr float DIST_TOL = 150.0;        // Vive coordinate tolerance
-constexpr int TURN_PWM = 100;
-constexpr int DRIVE_PWM = 115;
-
-static float angleWrapDeg(float a) {
-  while (a > 180.0f) a -= 360.0f;
-  while (a < -180.0f) a += 360.0f;
-  return a;
-}
+static int consecutiveViveHits = 0; 
 
 void startAutoTarget(float tx, float ty) {
   targetX = tx;
   targetY = ty;
-  autoTargetStep = AT_TURN;
+  autoTargetStep = AT_DRIVE_X;
+  consecutiveViveHits = 0; // Reset counter for the new task
   resetPController();
   driveState = DS_AUTO_TARGET;
 }
 
 void autoTargetUpdate() {
-  float dx = targetX - robotX;
-  float dy = targetY - robotY;
+  noInterrupts();
+  long currentL = encoderCount[0];
+  long currentR = encoderCount[1];
+  interrupts();
+ 
+  switch (autoTargetStep) {
+ 
+    case AT_DRIVE_X:
+      // Drive straight slowly until X coordinate is close enough 5 times in a row
+      if (fabsf(robotX - targetX) <= VIVE_TOL) {
+        consecutiveViveHits++;
+      } else {
+        consecutiveViveHits = 0; // Reset if we get a stray/out-of-bounds reading
+      }
 
-  float targetAngle = atan2(dy, dx) * 180.0f / PI;
-  float angleError = angleWrapDeg(targetAngle - robotTheta);
-  float dist = sqrt(dx * dx + dy * dy);
+      if (consecutiveViveHits >= 3) {
+        motorsStop();
+        consecutiveViveHits = 0; // Reset counter for the Y phase
+        
+        // Latch encoder positions for the upcoming turn
+        noInterrupts();
+        atTurnStartL = encoderCount[0];
+        atTurnStartR = encoderCount[1];
+        interrupts();
+        
+        autoTargetStep = AT_TURN_90;
+        return;
+      }
+      wallFollowLeftSpeed(350);
+      break;
+ 
+    case AT_TURN_90:
+      // Pivot right: left motor forward, right motor reverse
+      motor(0, +1, AT_TURN_PWM);
+      motor(1, -1, AT_TURN_PWM);
+      if (abs(currentL - atTurnStartL) >= AC_TURN90_TICKS &&
+          abs(currentR - atTurnStartR) >= AC_TURN90_TICKS) {
+        motorsStop();
+        autoTargetStep = AT_DRIVE_Y;
+      }
+      break;
+ 
+    case AT_DRIVE_Y:
+      // Drive straight slowly until Y coordinate is close enough 5 times in a row
+      if (fabsf(robotY - targetY) <= VIVE_TOL) {
+        consecutiveViveHits++;
+      } else {
+        consecutiveViveHits = 0; // Reset if we get a stray reading
+      }
 
-  if (autoTargetStep == AT_TURN) {
-    if (abs(angleError) <= ANGLE_TOL_DEG) {
+      if (consecutiveViveHits >= 3) {
+        motorsStop();
+        consecutiveViveHits = 0;
+        autoTargetStep = AT_DONE;
+        driveState = DS_STOP;
+        return;
+      }
+      PController(+1, 400);
+      break;
+ 
+    default:
       motorsStop();
-      resetPController();
-      autoTargetStep = AT_DRIVE;
-      return;
-    }
-
-    if (angleError > 0) {
-      // turn left
-      motor(0, -1, TURN_PWM);
-      motor(1, +1, TURN_PWM);
-    } else {
-      // turn right
-      motor(0, +1, TURN_PWM);
-      motor(1, -1, TURN_PWM);
-    }
-  }
-
-  else if (autoTargetStep == AT_DRIVE) {
-    if (dist <= DIST_TOL) {
-      motorsStop();
-      autoTargetStep = AT_DONE;
       driveState = DS_STOP;
-      return;
-    }
-
-    int correction = constrain((int)(1.5f * angleError), -40, 40);
-
-    int leftPWM  = constrain(DRIVE_PWM - correction, PWM_MIN, PWM_MAX);
-    int rightPWM = constrain(DRIVE_PWM + correction, PWM_MIN, PWM_MAX);
-
-    motor(0, +1, leftPWM);
-    motor(1, +1, rightPWM);
-  }
-
-  else {
-    motorsStop();
-    driveState = DS_STOP;
+      break;
   }
 }

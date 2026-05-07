@@ -108,7 +108,7 @@ static void updateRobotPose() {
     (float)vive2X - (float)vive1X
   );
 
-  robotTheta += PI / 2.0f;
+  robotTheta += PI;
 
   robotTheta = robotTheta * 180.0f / PI;
 }

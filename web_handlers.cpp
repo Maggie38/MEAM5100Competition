@@ -68,7 +68,7 @@ static void rightHandler() {
     driveState = DS_RIGHT;
     // turn right
     motor(1, 0, 0);
-    motor(0, 1, 110);
+    motor(0, 1, 90);
     h.sendplain("right");
   } else {
     h.sendplain("dead");
@@ -81,7 +81,7 @@ static void leftHandler() {
     resetWallFollow();
     driveState = DS_LEFT;
     // turn left
-    motor(1, 1, 110);
+    motor(1, 1, 90);
     motor(0, 0, 0);
     h.sendplain("left");
   } else {

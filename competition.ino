@@ -57,4 +57,5 @@ void loop() {
   tofUpdate();
   // Update vive localizations
   viveUpdate();
+  servoUpdate();
 }

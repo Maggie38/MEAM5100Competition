@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // P-controller tuning
-constexpr long  TARGET_SPEED = 300 * 4;
+constexpr long  TARGET_SPEED = 800;
 constexpr float KP           = 0.8f;
 constexpr float KP_DIFF      = 0.6f;
 constexpr int   CONTROL_MS   = 500; 
@@ -19,7 +19,7 @@ enum DriveState {
   DS_AUTO_TARGET, DS_AUTO_LOW, DS_AUTO_NEXUS, DS_AUTO_HIGH
 };
 extern volatile DriveState driveState;
-constexpr int AC_TURN90_TICKS = 140;
+constexpr int AC_TURN90_TICKS = 1250;
 
 /**
  * Initialize driver state.
@@ -32,6 +32,8 @@ void driverInit();
  * Reads encoderCount[], updates PWM outputs, and calls motor().
  */
 void PController(int motorDir);
+
+void PController(int motorDir, int targetspeed);
 
 /**
  * Reset integrator state (previous counts + PWM outputs to min).
@@ -74,6 +76,7 @@ void wallFollowLeft();
  */
 void wallFollowRightSpeed(long targetSpeed);
 void wallFollowLeftSpeed(long targetSpeed);
+void wallFollowLeftSpeed(long targetSpeed, int targetdistance);
 
 /**
  * Returns true if we've hit a wall

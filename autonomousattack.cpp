@@ -20,17 +20,23 @@ static int safeLeft() {
 }
 
 enum AutoLowStep {
-  AL_WF_APPROACH = 0,  // wall follow left until right TOF < 15
-  AL_TURN_RIGHT,        // pivot right until left encoder turned 550 counts
+  AL_WF_APPROACH = 0,  
+  AL_TURN_RIGHT,   
+  AL_FORWARD,
   AL_DONE
 };
 
 static AutoLowStep alStep    = AL_DONE;
 static long        alTurnStart = 0;
+static long         alForwardStart = 0;
+
+static unsigned long alStartTime = 0; // NEW: Track when the state started
 
 void startAutoLow() {
   alStep     = AL_WF_APPROACH;
   alTurnStart = 0;
+  alForwardStart = 0;
+  alStartTime = millis(); // NEW: Capture start time
   resetWallFollow();
   resetPController();
   driveState = DS_AUTO_LOW;
@@ -38,6 +44,7 @@ void startAutoLow() {
 
 void autoLowUpdate() {
   int rightDist = safeRight();
+  unsigned long now = millis(); // NEW: Get current time
 
   noInterrupts();
   long currentL = encoderCount[0];
@@ -45,12 +52,16 @@ void autoLowUpdate() {
 
   switch (alStep) {
     case AL_WF_APPROACH:
-      wallFollowLeft();
-      if (rightDist < 15) {
-        motorsStop();
-        resetWallFollow();
-        alTurnStart = 0;
-        alStep = AL_TURN_RIGHT;
+      wallFollowLeftSpeed(350);
+      
+      // NEW: Only check right distance if 500ms has elapsed
+      if (now - alStartTime > 500) { 
+        if (rightDist < 15) {
+          motorsStop();
+          resetWallFollow();
+          alTurnStart = 0;
+          alStep = AL_TURN_RIGHT;
+        }
       }
       break;
 
@@ -62,7 +73,22 @@ void autoLowUpdate() {
       }
       motor(1, 0, 0);
       motor(0, +1, 120);
-      if (abs(currentL - alTurnStart) >= 5600) {
+      if (abs(currentL - alTurnStart) >= 4000) {
+        motorsStop();
+        alStep = AL_FORWARD;
+      }
+      break;
+    
+    case AL_FORWARD:
+      if (alForwardStart == 0) {
+        noInterrupts();
+        alForwardStart = encoderCount[0];
+        interrupts();
+        currentL = alForwardStart;
+      }
+      motor(0, +1, 100);  // left motor forward
+      motor(1,  +1,  100);  // right motor forward
+      if (abs(currentL - alForwardStart) >= 500) {
         motorsStop();
         alStep = AL_DONE;
         driveState = DS_STOP;
@@ -76,13 +102,12 @@ void autoLowUpdate() {
       break;
   }
 }
-
-constexpr int NEXUS_MAX_STRIKES = 4;
+constexpr int NEXUS_MAX_STRIKES = 8;
 
 // Tune this on the robot. This is how far the robot wall-follows left
 // before starting the Nexus alignment turns. It uses encoder counts instead
 // of the front TOF, so increase it to drive farther before turning.
-constexpr long NEXUS_WALL_FOLLOW_COUNTS = 20000;
+constexpr long NEXUS_WALL_FOLLOW_COUNTS = 17000;
 
 // Still use front TOF only for the backup after each Nexus hit.
 // If your TOF library reports mm, use 250 instead of 25.
@@ -96,7 +121,7 @@ constexpr long NEXUS_RIGHT_WHEEL_90_COUNTS = 1300;
 // Do not force a custom low speed here; on this robot the speed-based helper
 // may be too slow or may not match the tuned left-wall-follow behavior.
 constexpr int NEXUS_TURN_SPEED        = 100;
-constexpr int NEXUS_ATTACK_SPEED      = 60;
+constexpr int NEXUS_ATTACK_SPEED      = 75;
 constexpr int NEXUS_BACKUP_SPEED      = 60;
 
 // Prevent false-positive stalls immediately after a state starts.
@@ -165,7 +190,7 @@ void autoNexusUpdate() {
     case AN_WF_FOR_ENCODER_DISTANCE: {
       // Use the same left-wall-follow routine that already works in autoLow,
       // but exit using encoder travel instead of the front TOF.
-      wallFollowLeft();
+      wallFollowLeftSpeed(350);
 
       long leftTravel  = labs(currentL - anEncoderStartL);
       long rightTravel = labs(currentR - anEncoderStartR);
@@ -275,7 +300,7 @@ void autoHighUpdate() {
         currentR = ahRampStart;
       }
       wallFollowRightSpeed(1500);
-      if (abs(currentR - ahRampStart) >= 14000) {
+      if (abs(currentR - ahRampStart) >= 13000) {
         motorsStop();
         resetWallFollow();
         ahTurnStart = 0;
@@ -292,7 +317,7 @@ void autoHighUpdate() {
       }
       motor(0, +1, 100);  // left motor forward -> pivots right
       motor(1,  0,  0);  // right motor stopped
-      if (abs(currentL - ahTurnStart) >= 2500) {
+      if (abs(currentL - ahTurnStart) >= 1600) {
         motorsStop();
         ahStep = AH_FORWARD;
       }

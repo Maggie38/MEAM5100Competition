@@ -180,6 +180,16 @@ const char body[] PROGMEM = R"===(
   // Poll every 200ms
   setInterval(updateState, 200);
 
+  // WASD keyboard controls
+  const keyMap = { w: 'forward', a: 'left', s: 'backward', d: 'right', ' ': 'stop' };
+  document.addEventListener('keydown', function(e) {
+    const cmd = keyMap[e.key.toLowerCase()];
+    if (cmd) {
+      e.preventDefault();
+      sendCmd(cmd);
+    }
+  });
+
 </script>
 </html>
 )===";
