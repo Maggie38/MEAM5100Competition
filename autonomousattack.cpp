@@ -79,99 +79,150 @@ void autoLowUpdate() {
 
 constexpr int NEXUS_MAX_STRIKES = 4;
 
-static long stateStartTime = 0;
-static long stallCheckTimer = 0;
-static long lastKnownCountL = 0;
-static long stallStartTime = 0;
+// Tune this on the robot. This is how far the robot wall-follows left
+// before starting the Nexus alignment turns. It uses encoder counts instead
+// of the front TOF, so increase it to drive farther before turning.
+constexpr long NEXUS_WALL_FOLLOW_COUNTS = 20000;
 
+// Still use front TOF only for the backup after each Nexus hit.
+// If your TOF library reports mm, use 250 instead of 25.
+constexpr int NEXUS_BACKUP_STOP_FRONT = 10;
+
+// Tune these until each single-wheel pivot gives about 90 degrees.
+constexpr long NEXUS_LEFT_WHEEL_90_COUNTS  = 1300;
+constexpr long NEXUS_RIGHT_WHEEL_90_COUNTS = 1300;
+
+// Use the already-tuned wallFollowLeft() for the initial approach.
+// Do not force a custom low speed here; on this robot the speed-based helper
+// may be too slow or may not match the tuned left-wall-follow behavior.
+constexpr int NEXUS_TURN_SPEED        = 100;
+constexpr int NEXUS_ATTACK_SPEED      = 60;
+constexpr int NEXUS_BACKUP_SPEED      = 60;
+
+// Prevent false-positive stalls immediately after a state starts.
+constexpr unsigned long NEXUS_STALL_ARM_MS       = 300;
+constexpr unsigned long NEXUS_ATTACK_TIMEOUT_MS  = 2500;
+constexpr unsigned long NEXUS_BACKUP_TIMEOUT_MS  = 2500;
+constexpr unsigned long NEXUS_TURN_TIMEOUT_MS    = 4000;
+
+static unsigned long stateStartTime = 0;
+
+// New sequence:
+// 1. Wall follow left for a tunable encoder distance.
+// 2. Turn the left wheel only until about 90 degrees.
+// 3. Turn the right wheel only until about 90 degrees to align with nexus button.
+// 4. Drive forward until stall/contact.
+// 5. Back up until the FRONT TOF sees 25.
+// 6. Repeat the hit/back-up cycle 4 times.
 enum AutoNexusStep {
-  AN_WF_TO_WALL = 0, // Wall follow left until stall/contact
-  AN_BACK_UP_TOF,    // Back up until front TOF is 10cm
-  AN_PIVOT_RIGHT,    // Pivot until encoder hits 2500
-  AN_APPROACH_HIT,   // Wall follow until hit button (stall)
-  AN_BACK_UP_STALL,  // Back up until stall
+  AN_WF_FOR_ENCODER_DISTANCE = 0,
+  AN_LEFT_WHEEL_90,
+  AN_RIGHT_WHEEL_90,
+  AN_ATTACK_FORWARD,
+  AN_BACK_UP_TO_FRONT_25,
   AN_DONE
 };
 
 static AutoNexusStep anStep = AN_DONE;
-static int anStrikes = 0; 
-static long anEncoderStart = 0;
+static int  anStrikes = 0;
+static long anEncoderStartL = 0;
+static long anEncoderStartR = 0;
 
-void transitionTo(AutoNexusStep nextStep) {
+static void transitionTo(AutoNexusStep nextStep) {
+  motorsStop();
   anStep = nextStep;
   stateStartTime = millis();
-  stallCheckTimer = 0;
-  stallStartTime = 0;
+
   noInterrupts();
-  lastKnownCountL = encoderCount[0];
+  anEncoderStartL = encoderCount[0];
+  anEncoderStartR = encoderCount[1];
   interrupts();
+}
+
+static bool stateHasRunFor(unsigned long ms) {
+  return (millis() - stateStartTime) >= ms;
 }
 
 void startAutoNexus() {
   anStrikes = 0;
+  anEncoderStartL = 0;
+  anEncoderStartR = 0;
   resetPController();
+  resetWallFollow();
   driveState = DS_AUTO_NEXUS;
-  transitionTo(AN_WF_TO_WALL);
+  transitionTo(AN_WF_FOR_ENCODER_DISTANCE);
 }
 
 void autoNexusUpdate() {
   int frontDist = safeFront();
-  
+
   noInterrupts();
   long currentL = encoderCount[0];
+  long currentR = encoderCount[1];
   interrupts();
 
   switch (anStep) {
-    // 1. Wall follow left until stall
-    case AN_WF_TO_WALL:
-      wallFollowLeftSpeed(1500);
-      if (isStalled()) {
-        motorsStop();
-        transitionTo(AN_BACK_UP_TOF);
+    case AN_WF_FOR_ENCODER_DISTANCE: {
+      // Use the same left-wall-follow routine that already works in autoLow,
+      // but exit using encoder travel instead of the front TOF.
+      wallFollowLeft();
+
+      long leftTravel  = labs(currentL - anEncoderStartL);
+      long rightTravel = labs(currentR - anEncoderStartR);
+      long avgTravel   = (leftTravel + rightTravel) / 2;
+
+      if (avgTravel >= NEXUS_WALL_FOLLOW_COUNTS) {
+        resetWallFollow();
+        transitionTo(AN_LEFT_WHEEL_90);
+      }
+      break;
+    }
+
+    case AN_LEFT_WHEEL_90:
+      // Left wheel only. Based on your existing convention, motor 0 is left.
+      motor(0, +1, NEXUS_TURN_SPEED);
+      motor(1,  0, 0);
+
+      if (labs(currentL - anEncoderStartL) >= NEXUS_LEFT_WHEEL_90_COUNTS ||
+          stateHasRunFor(NEXUS_TURN_TIMEOUT_MS)) {
+        transitionTo(AN_RIGHT_WHEEL_90);
       }
       break;
 
-    // 2. Back up slowly until front TOF reads 10 cm
-    case AN_BACK_UP_TOF:
-      motor(0, -1, 80);
-      motor(1, -1, 80);
-      if (frontDist >= 100) { 
-        motorsStop();
-        anEncoderStart = currentL;
-        transitionTo(AN_PIVOT_RIGHT);
+    case AN_RIGHT_WHEEL_90:
+      // Right wheel only. Based on your existing convention, motor 1 is right.
+      motor(0,  1, 0);
+      motor(1, +1, NEXUS_TURN_SPEED);
+
+      if (labs(currentR - anEncoderStartR) >= NEXUS_RIGHT_WHEEL_90_COUNTS ||
+          stateHasRunFor(NEXUS_TURN_TIMEOUT_MS)) {
+        transitionTo(AN_ATTACK_FORWARD);
       }
       break;
 
-    // 3. Right wheel reverse, left wheel forward until encoder count 2500
-    case AN_PIVOT_RIGHT:
-      motor(0, +1, 100); 
-      motor(1, -1, 100); 
-      if (abs(currentL - anEncoderStart) >= 2500) {
-        motorsStop();
-        anStrikes = 0;
-        transitionTo(AN_APPROACH_HIT);
-      }
-      break;
+    case AN_ATTACK_FORWARD:
+      motor(0, +1, NEXUS_ATTACK_SPEED);
+      motor(1, +1, NEXUS_ATTACK_SPEED);
 
-    // 4. Wall follow left until hit button (stall)
-    case AN_APPROACH_HIT:
-      wallFollowLeftSpeed(1200);
-      if (isStalled()) { 
-        motorsStop();
-        transitionTo(AN_BACK_UP_STALL);
-      }
-      break;
-
-    // 5. Back up until stall
-    case AN_BACK_UP_STALL:
-      motor(0, -1, 120);
-      motor(1, -1, 120);
-      
-      if (isStalled()) { 
-        motorsStop();
+      // Stall means we pushed into the nexus button.
+      // Timeout keeps the robot from driving forever if stall detection misses.
+      if ((stateHasRunFor(NEXUS_STALL_ARM_MS) && isStalled()) ||
+          stateHasRunFor(NEXUS_ATTACK_TIMEOUT_MS)) {
         anStrikes++;
-        if (anStrikes < 4) {
-          transitionTo(AN_APPROACH_HIT);
+        transitionTo(AN_BACK_UP_TO_FRONT_25);
+      }
+      break;
+
+    case AN_BACK_UP_TO_FRONT_25:
+      motor(0, -1, NEXUS_BACKUP_SPEED);
+      motor(1, -1, NEXUS_BACKUP_SPEED);
+
+      // After the hit, backing up should make front distance increase.
+      // Stop once the front TOF sees at least 25.
+      if (frontDist >= NEXUS_BACKUP_STOP_FRONT ||
+          stateHasRunFor(NEXUS_BACKUP_TIMEOUT_MS)) {
+        if (anStrikes < NEXUS_MAX_STRIKES) {
+          transitionTo(AN_ATTACK_FORWARD);
         } else {
           transitionTo(AN_DONE);
         }
@@ -181,6 +232,7 @@ void autoNexusUpdate() {
     case AN_DONE:
     default:
       motorsStop();
+      resetWallFollow();
       driveState = DS_STOP;
       break;
   }

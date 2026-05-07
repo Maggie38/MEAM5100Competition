@@ -162,15 +162,15 @@ void wallFollowLeft() {
   // If the front sensor sees an obstacle, start a timed backup.
   // This makes the backup last a fixed amount of time instead of depending
   // on how long the front TOF stays below the threshold.
-  if (front < 20 && leftWallFollowBackupStartMS == 0) {
+  if (front < 15 && leftWallFollowBackupStartMS == 0) {
     leftWallFollowBackupStartMS = now;
   }
 
   // While backup mode is active, keep backing up until the timer expires.
   if (leftWallFollowBackupStartMS != 0) {
     if (now - leftWallFollowBackupStartMS < LEFT_WALL_FOLLOW_BACKUP_MS) {
-      motor(0, -1, 40);
-      motor(1, -1, 70);
+      motor(0, -1, 60);
+      motor(1, -1, 90);
       return;
     }
 
