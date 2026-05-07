@@ -58,7 +58,7 @@ void motor(int m, int dir, int spd) {
     digitalWrite(IN1[m], LOW);  digitalWrite(IN2[m], LOW);
   }
   if (m == 1)
-     spd = (int)((float)spd * 1.06);
+     spd = (int)((float)spd * 1.02);
   ledcWrite(PWM_PIN[m], (dir == 0) ? 0 : spd);
 }
 

@@ -223,7 +223,7 @@ void autoHighUpdate() {
         currentR = ahRampStart;
       }
       wallFollowRightSpeed(1500);
-      if (abs(currentR - ahRampStart) >= 14500) {
+      if (abs(currentR - ahRampStart) >= 14000) {
         motorsStop();
         resetWallFollow();
         ahTurnStart = 0;
@@ -240,10 +240,9 @@ void autoHighUpdate() {
       }
       motor(0, +1, 100);  // left motor forward -> pivots right
       motor(1,  0,  0);  // right motor stopped
-      if (abs(currentL - ahTurnStart) >= 3000) {
+      if (abs(currentL - ahTurnStart) >= 2500) {
         motorsStop();
-        ahStep = AH_DONE;
-        driveState = DS_STOP;
+        ahStep = AH_FORWARD;
       }
       break;
     case AH_FORWARD:
@@ -254,7 +253,7 @@ void autoHighUpdate() {
         currentL = ahForwardStart;
       }
       motor(0, +1, 100);  // left motor forward
-      motor(1,  0,  100);  // right motor forward
+      motor(1,  +1,  100);  // right motor forward
       if (abs(currentL - ahForwardStart) >= 500) {
         motorsStop();
         ahStep = AH_DONE;
